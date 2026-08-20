@@ -23,6 +23,11 @@ _BLOCKED_DIRS_NIX = [
 
 
 def _is_blocked(resolved: str, blocked: str) -> bool:
+    # Resolve the blocked entry through realpath too, not just the input —
+    # on macOS /etc, /tmp, and /var are symlinks into /private/..., so an
+    # already-realpath'd `resolved` (e.g. "/private/etc/x") would never
+    # match a literal "/etc" prefix otherwise, silently defeating the block.
+    blocked = os.path.realpath(blocked)
     return resolved == blocked or resolved.startswith(blocked + os.sep)
 
 
