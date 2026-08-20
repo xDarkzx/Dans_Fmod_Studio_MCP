@@ -4,6 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    ignore:
+      # mcp 2.0.0 removed/restructured mcp.server.fastmcp, which every tool
+      # module in this project imports directly — the <2.0.0 pin in
+      # pyproject.toml is deliberate, not stale. Still take 1.x minor/patch
+      # updates; only major bumps need a real migration first.
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
