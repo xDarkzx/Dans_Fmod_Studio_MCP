@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xdarkzx-fmod-studio-mcp"
+version = "0.1.0"
+description = "MCP server for AI-driven game audio authoring in FMOD Studio via TCP/IP bridging through the built-in JavaScript scripting terminal"
+license = "Apache-2.0"
+authors = [
+    { name = "Daniel Hodgetts" },
+]
+readme = "README.md"
+keywords = ["fmod", "fmod-studio", "mcp", "audio", "ai", "game-audio", "model-context-protocol", "sound-design"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Games/Entertainment",
+]
+requires-python = ">=3.10"
+dependencies = [
+    # Upper-bounded deliberately: mcp 2.0.0 is a real, confirmed breaking
+    # release (removed/restructured mcp.server.fastmcp, which every tool
+    # module in this project imports). Same pin as Reaper-MCP.
+    "mcp[cli]>=1.0.0,<2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "ruff>=0.15",
+]
+
+[tool.ruff.lint]
+# Real bugs (F, pyflakes) and real security patterns (S, bandit port) -
+# deliberately excludes E/W (pycodestyle style/formatting). Same as Reaper-MCP.
+select = ["F", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["fmod_mcp", "fmod_mcp_shared"]
+
+[project.scripts]
+fmod-studio-mcp = "fmod_mcp.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

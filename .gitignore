@@ -1,0 +1,38 @@
+### Python ###
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+*.pyd
+.venv/
+venv/
+env/
+
+### Testing ###
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+### IDE/editor ###
+.idea/
+.vscode/
+*.swp
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Project-local ###
+# IPC/audit artifacts land under the OS temp dir, not here. Keep the repo
+# clean of any scratch files that show up while testing the bridge.
+scratch/
+*.fsp
+*.json.tmp
+
+# Local MCP client config — hardcodes an absolute machine-specific path
+# (cwd), not meant to be published. See README/docs for the config template.
+.mcp.json
