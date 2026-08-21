@@ -66,6 +66,86 @@ def test_g_n_p_helpers_against_a_real_project_object():
     asyncio.run(run())
 
 
+def test_automation_add_curve_multi_point_does_not_syntax_error():
+    """Regression test: automation_add_curve's multi-statement JS body used
+    to join semicolon-terminated statements with ',' — producing
+    `a;,b;,c;`, a bare comma at statement position, a JS syntax error. This
+    only manifests for 2+ points (a single point has nothing to join
+    against), so it went undetected through every stub-client test and
+    every hand-written manual test in this project's history — the first
+    time the real tool function was ever called end-to-end with 3 points,
+    it failed with an opaque "Invalid JSON response from FMOD Studio",
+    not a normal thrown error. Creates and cleans up its own throwaway
+    project objects so it doesn't touch whatever project is actually open.
+    """
+
+    class _StubMCP:
+        def __init__(self):
+            self.tools = {}
+
+        def tool(self):
+            def deco(fn):
+                self.tools[fn.__name__] = fn
+                return fn
+
+            return deco
+
+    async def run():
+        from fmod_mcp.tools import automation_tools
+
+        client = FmodStudioClient()
+        group = await client.execute(
+            "var g=studio.project.create('MixerGroup');"
+            "g.name='__test_automation_group';return {guid:G(g)};"
+        )
+        event = await client.execute(
+            "var e=studio.project.create('Event');"
+            "e.name='__test_automation_event';return {guid:G(e)};"
+        )
+        group_guid = group["result"]["guid"]
+        event_guid = event["result"]["guid"]
+        try:
+            await client.execute(
+                "var e=L(p.target);var pt=studio.project.parameterType.User;"
+                "e.addGameParameter({name:'__TestParam',type:pt,min:0,max:1});"
+                "return true;",
+                target=event_guid,
+            )
+
+            mcp = _StubMCP()
+            automation_tools.register(mcp)
+            r = await mcp.tools["automation_add_curve"](
+                target=group_guid,
+                property="volume",
+                driver="parameter:/__TestParam",
+                points=[[0.0, 0.0], [0.5, -6.0], [1.0, -12.0]],
+                driver_type="parameter",
+            )
+            assert r["success"] is True
+            assert r["result"]["points"] == 3
+
+            listing = await mcp.tools["automation_list"](
+                target=group_guid, property="volume"
+            )
+            curves = listing["result"]["curves"]
+            assert len(curves) == 1, (
+                f"expected exactly 1 curve, got {len(curves)} — "
+                "multi-point call fragmented instead of building one curve"
+            )
+            assert curves[0]["points"] == [[0.0, 0.0], [0.5, -6.0], [1.0, -12.0]]
+        finally:
+            await client.execute(
+                "var o=L(p.target);studio.project.deleteObject(o);return true;",
+                target=group_guid,
+            )
+            await client.execute(
+                "var o=L(p.target);studio.project.deleteObject(o);return true;",
+                target=event_guid,
+            )
+
+    asyncio.run(run())
+
+
 def test_workspace_roots_are_not_null():
     """Regression test for the reported 'workspace roots are all null' bug —
     same root cause as the guid mismatch above (workspace_info runs G() on
