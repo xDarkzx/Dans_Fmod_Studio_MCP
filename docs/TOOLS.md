@@ -60,6 +60,7 @@ Every tool in FmodStudioMCP, grouped by module. All tools run in the **live** pr
 | `marker_set_position` | `(target, position)` | Move a point-type marker. |
 | `marker_set_region` | `(target, position, length)` | Move/resize a region-type marker. |
 | `marker_delete` | `(target)` | Delete a marker/region (**destructive**, backed up). |
+| `marker_add_transition_timeline` | `(transition_target, audio_track_target, crossfade_length?)` | Add a crossfaded transition timeline (source+destination sound pair) to a transition marker/region/loop/magnet region — FMOD's "Add Transition Timeline" feature, the professional seamless-loop technique instead of a hard cut. Structurally verified; audition the actual blend in Studio. |
 
 ## Sounds (`sound_tools.py`)
 

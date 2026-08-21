@@ -292,3 +292,57 @@ def register(mcp: FastMCP):
             "var o=L(p.target);studio.project.deleteObject(o);return true;",
             target=target,
         )
+
+    @mcp.tool()
+    async def marker_add_transition_timeline(
+        transition_target: str,
+        audio_track_target: str,
+        crossfade_length: float = 1.0,
+    ) -> dict:
+        """Add a transition timeline to a transition marker/region/loop
+        region/magnet region, with a source+destination sound pair — FMOD's
+        "Add Transition Timeline" feature: a crossfaded transition instead
+        of a hard jump-cut, the professional technique for a seamless loop.
+
+        Structurally verified live: this produces a valid TransitionTimeline
+        plus TransitionSourceSound/TransitionDestinationSound, both correctly
+        bound (a TransitionSourceSound/TransitionDestinationSound requires
+        both its `audioTrack` and `parameter` relationships set to be valid
+        — confirmed by creating one without them and observing `isValid:
+        false`) and overlapped by `crossfade_length` seconds, which is what
+        makes FMOD blend them as a crossfade rather than play them back to
+        back. The exact blend hasn't been audibly verified against a real
+        render — audition it in Studio and adjust `crossfade_length` if the
+        blend isn't right; there's no scripted way to "listen" from here.
+
+        Args:
+            transition_target: TransitionMarker/TransitionRegion/LoopRegion/
+                                MagnetRegion {guid} to add the timeline to.
+            audio_track_target: The GroupTrack {guid} whose audio is
+                                 transitioning — the track being looped, for
+                                 a simple single-track loop.
+            crossfade_length: Overlap between outgoing and incoming audio,
+                              in seconds (default 1.0, must be > 0). Larger
+                              = smoother/slower blend.
+        """
+        _check_length(crossfade_length)
+        return await client.execute(
+            "var m=L(p.transition_target);"
+            "var at=L(p.audio_track_target);"
+            "var tt=studio.project.create('TransitionTimeline');"
+            "if(!tt)throw new Error('studio.project.create failed for TransitionTimeline');"
+            "m.transitionTimeline=tt;"
+            "var src=studio.project.create('TransitionSourceSound');"
+            "src.audioTrack=at;src.parameter=tt;src.start=0;src.length=p.crossfade_length;"
+            "var dst=studio.project.create('TransitionDestinationSound');"
+            "dst.audioTrack=at;dst.parameter=tt;dst.start=0;dst.length=p.crossfade_length;"
+            "if(!src.isValid||!dst.isValid)throw new Error("
+            "'source/destination sound did not become valid — audioTrack '+"
+            "'or parameter binding may have failed silently (sourceValid='+"
+            "src.isValid+', destinationValid='+dst.isValid+')');"
+            "return {transitionTimelineGuid:G(tt),sourceGuid:G(src),"
+            "destinationGuid:G(dst)};",
+            transition_target=transition_target,
+            audio_track_target=audio_track_target,
+            crossfade_length=crossfade_length,
+        )

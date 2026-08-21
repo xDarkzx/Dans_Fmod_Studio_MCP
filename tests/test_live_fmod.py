@@ -146,6 +146,88 @@ def test_automation_add_curve_multi_point_does_not_syntax_error():
     asyncio.run(run())
 
 
+def test_marker_add_transition_timeline_produces_valid_objects():
+    """marker_add_transition_timeline must produce a TransitionTimeline plus
+    source/destination sounds that are actually valid — a
+    TransitionSourceSound/TransitionDestinationSound requires both its
+    audioTrack and parameter relationships set or FMOD reports isValid:
+    false (confirmed live: creating one without them does exactly that).
+    Creates and cleans up its own throwaway event/track/markers.
+    """
+
+    class _StubMCP:
+        def __init__(self):
+            self.tools = {}
+
+        def tool(self):
+            def deco(fn):
+                self.tools[fn.__name__] = fn
+                return fn
+
+            return deco
+
+    async def run():
+        from fmod_mcp.tools import marker_tools
+
+        client = FmodStudioClient()
+        event = await client.execute(
+            "var e=studio.project.create('Event');"
+            "e.name='__test_transition_timeline_event';return {guid:G(e)};"
+        )
+        event_guid = event["result"]["guid"]
+        try:
+            tr = await client.execute(
+                "var e=L(p.target);var t=e.addGroupTrack();return {trackGuid:G(t)};",
+                target=event_guid,
+            )
+            track_guid = tr["result"]["trackGuid"]
+
+            mcp = _StubMCP()
+            marker_tools.register(mcp)
+
+            mt = await mcp.tools["event_add_marker_track"](target=event_guid)
+            marker_track_guid = mt["result"]["guid"]
+            dest = await mcp.tools["marker_add_named"](
+                track_target=marker_track_guid, name="start", position=0.0
+            )
+            dest_guid = dest["result"]["guid"]
+            tm = await mcp.tools["marker_add_transition"](
+                track_target=marker_track_guid,
+                position=8.0,
+                destination_target=dest_guid,
+            )
+            tm_guid = tm["result"]["guid"]
+
+            r = await mcp.tools["marker_add_transition_timeline"](
+                transition_target=tm_guid,
+                audio_track_target=track_guid,
+                crossfade_length=1.5,
+            )
+            assert r["success"] is True
+            result = r["result"]
+            assert result["transitionTimelineGuid"]
+            assert result["sourceGuid"]
+            assert result["destinationGuid"]
+
+            # Independently confirm both are actually valid, not just that
+            # the call didn't throw.
+            check = await client.execute(
+                "var s=L(p.src);var d=L(p.dst);"
+                "return {sourceValid:s.isValid,destinationValid:d.isValid};",
+                src=result["sourceGuid"],
+                dst=result["destinationGuid"],
+            )
+            assert check["result"]["sourceValid"] is True
+            assert check["result"]["destinationValid"] is True
+        finally:
+            await client.execute(
+                "var o=L(p.target);studio.project.deleteObject(o);return true;",
+                target=event_guid,
+            )
+
+    asyncio.run(run())
+
+
 def test_workspace_roots_are_not_null():
     """Regression test for the reported 'workspace roots are all null' bug —
     same root cause as the guid mismatch above (workspace_info runs G() on

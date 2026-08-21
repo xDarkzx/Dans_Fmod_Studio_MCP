@@ -53,7 +53,12 @@ per layer. For a bed that changes *through* the event instead, use
 `LoopRegion` already loops on its own (paired transition+destination marker
 built in) — do NOT also add an explicit `marker_add_transition` at its end
 point; that creates a conflicting logic point at the same position instead of
-letting the region's own behavior work.
+letting the region's own behavior work. For a *seamless* loop/transition
+(crossfaded, not a hard cut) use `marker_add_transition_timeline` on the
+transition marker/region/loop region — this is FMOD's real "Add Transition
+Timeline" mechanism; do not try to build one by manually creating
+`TransitionSourceSound`/`TransitionDestinationSound` objects without it, they
+require both `audioTrack` and `parameter` relationships set to be valid.
 
 **Snapshots** swap whole mixer states: `snapshot_create` + `snapshot_bind_group`.
 Triggered by game code like a sound, not "built" — they ship in banks.

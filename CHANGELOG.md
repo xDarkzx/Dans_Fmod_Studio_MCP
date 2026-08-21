@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **`marker_add_transition_timeline`** — FMOD's real "Add Transition Timeline" feature (crossfaded seamless transitions instead of a hard jump-cut), previously unavailable. Investigated live: `TransitionSourceSound`/`TransitionDestinationSound` require both `audioTrack` and `parameter` (set to a `TransitionTimeline`) relationships to be valid — confirmed by creating one without them and observing `isValid: false`, both in a fresh throwaway object and in objects already sitting in a real project, which is what those mystery objects flagged earlier this session actually turned out to be (a genuinely incomplete/invalid attempt at this feature, not random debris). The tool creates the `TransitionTimeline` and a correctly-bound source/destination pair overlapped by `crossfade_length` seconds. Structural validity is verified live in a regression test; the actual audible crossfade quality hasn't been verified against a real render and should be auditioned in Studio.
+
 ## [0.4.0] - 2026-08-21
 
 ### Fixed
