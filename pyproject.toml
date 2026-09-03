@@ -29,7 +29,7 @@ dependencies = [
     # Upper-bounded deliberately: mcp 2.0.0 is a real, confirmed breaking
     # release (removed/restructured mcp.server.fastmcp, which every tool
     # module in this project imports). Same pin as Reaper-MCP.
-    "mcp[cli]>=1.0.0,<2.0.0",
+    "mcp[cli]>=1.0.0,<3.0.0",
 ]
 
 [project.optional-dependencies]
